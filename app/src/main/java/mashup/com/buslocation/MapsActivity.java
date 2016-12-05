@@ -20,6 +20,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.github.nkzawa.emitter.Emitter;
+import com.github.nkzawa.socketio.client.IO;
+import com.github.nkzawa.socketio.client.Socket;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -28,7 +31,11 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-import static mashup.com.buslocation.R.id.large;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.net.URISyntaxException;
+
 import static mashup.com.buslocation.R.id.map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
@@ -49,6 +56,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
     private LocationListener locationListener;
 
+    private Socket socket;
+    {
+        try {
+            socket = IO.socket("http://192.168.1.68:3000/");
+        }
+        catch(URISyntaxException e) {
+            Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -57,6 +74,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(map);
         mapFragment.getMapAsync(this);
+
+        socket.on("recibirCoordenadas", recibirCoordenadas);
+        socket.connect();
 
         textview_coordenadas = (TextView) findViewById(R.id.textview_coordenadas);
 
@@ -86,6 +106,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             @Override
             public void onLocationChanged(Location location) {
                 marcador.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
+                socket.emit("enviarCoordenadas", location.getLatitude() + ", " + location.getLongitude());
                 textview_coordenadas.setText(location.getLatitude() + ", " + location.getLongitude());
             }
 
@@ -118,8 +139,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
         marcador = mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(37.7750, 122.4183))
-                .title("San Francisco")
-                .snippet("Population: 776733"));
+                .title("Titulo.")
+                .snippet("Descripcion."));
         // Add a marker in Sydney and move the camera
         //LatLng sydney = new LatLng(-34, 151);
         //mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
@@ -162,6 +183,37 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         super.onResume();
         estadoBluetooth();
     }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        socket.disconnect();
+    }
+
+    private Emitter.Listener recibirCoordenadas = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    JSONObject data = (JSONObject) args[0];
+                    String username;
+                    String message;
+                    try {
+                        username = data.getString("username");
+                        message = data.getString("message");
+                        Toast.makeText(getApplicationContext(), username + ": " + message, Toast.LENGTH_LONG).show();
+                    }
+                    catch(JSONException e) {
+                        return;
+                    }
+
+                    // add the message to view
+                    // addMessage(username, message);
+                }
+            });
+        }
+    };
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {

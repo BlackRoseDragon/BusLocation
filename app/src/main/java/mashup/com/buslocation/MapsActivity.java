@@ -20,6 +20,9 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.estimote.sdk.Beacon;
+import com.estimote.sdk.BeaconManager;
+import com.estimote.sdk.Region;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
 import com.github.nkzawa.socketio.client.Socket;
@@ -27,6 +30,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -35,6 +39,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.net.URISyntaxException;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.UUID;
 
 import static mashup.com.buslocation.R.id.map;
 
@@ -43,6 +50,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private GoogleMap mMap;
 
     private Marker marcador;
+
+    private LinkedList<Usuario> listaUsuarios = new LinkedList();
 
     private TextView textview_coordenadas;
 
@@ -55,6 +64,52 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationManager locationManager;
 
     private LocationListener locationListener;
+
+    private static final UUID ESTIMOTE_PROXIMITY_UUID = UUID.fromString("B9407F30-F5F8-466E-AFF9-25556B57FE6D");
+    private static final Region ALL_ESTIMOTE_BEACONS = new Region("rid", ESTIMOTE_PROXIMITY_UUID, null, null);
+
+    BeaconManager beaconManager;
+
+    public void BeaconManager() {
+        beaconManager = new BeaconManager(getApplicationContext());
+        beaconManager.setRangingListener(new BeaconManager.RangingListener() {
+            @Override public void onBeaconsDiscovered(Region region, final List beacons) {
+                //Log.d(TAG, "Ranged beacons: " + beacons);
+                Toast.makeText(getApplicationContext(), "Ranged beacons: " + beacons.size(), Toast.LENGTH_LONG).show();
+            }
+        });
+
+        beaconManager.setNearableListener(new BeaconManager.NearableListener() {
+            @Override public void onNearablesDiscovered(List nearables) {
+                //Log.d(TAG, "Discovered nearables: " + nearables);
+                Toast.makeText(getApplicationContext(), "Discovered nearables: " + nearables.size(), Toast.LENGTH_LONG).show();
+            }
+        });
+
+        beaconManager.setEddystoneListener(new BeaconManager.EddystoneListener() {
+            @Override public void onEddystonesFound(List eddystones) {
+                //Log.d(TAG, "Nearby eddystones: " + eddystones);
+                Toast.makeText(getApplicationContext(), "Nearby eddystones: " + eddystones.size(), Toast.LENGTH_LONG).show();
+            }
+        });
+        connectToService();
+    }
+
+    public void connectToService() {
+        beaconManager.connect(new BeaconManager.ServiceReadyCallback() {
+            @Override public void onServiceReady() {
+
+                // Beacons ranging.
+                beaconManager.startRanging(ALL_ESTIMOTE_BEACONS);
+
+                // Nearable discovery.
+                beaconManager.startNearableDiscovery();
+
+                // Eddystone scanning.
+                beaconManager.startEddystoneScanning();
+            }
+        });
+    }
 
     private Socket socket;
     {
@@ -105,8 +160,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                marcador.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
-                socket.emit("enviarCoordenadas", location.getLatitude() + ", " + location.getLongitude());
+                //marcador.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
+                socket.emit("enviarCoordenadas", location.getLatitude() + "," + location.getLongitude());
                 textview_coordenadas.setText(location.getLatitude() + ", " + location.getLongitude());
             }
 
@@ -132,6 +187,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 verificarPermisos();
             }
         });
+        BeaconManager();
     }
 
     @Override
@@ -185,9 +241,16 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        //beaconManager.stopEddystoneScanning();
+    }
+
+    @Override
     protected void onDestroy() {
         super.onDestroy();
         socket.disconnect();
+        beaconManager.disconnect();
     }
 
     private Emitter.Listener recibirCoordenadas = new Emitter.Listener() {
@@ -197,23 +260,61 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public void run() {
                     JSONObject data = (JSONObject) args[0];
-                    String username;
-                    String message;
+                    String idUsuario;
+                    String latitud;
+                    String longitud;
                     try {
-                        username = data.getString("username");
-                        message = data.getString("message");
-                        Toast.makeText(getApplicationContext(), username + ": " + message, Toast.LENGTH_LONG).show();
+                        idUsuario = data.getString("idUsuario");
+                        latitud = data.getString("latitud");
+                        longitud = data.getString("longitud");
+                        if(listaUsuarios.size() == 0) {
+                            Usuario usuario = new Usuario();
+                            usuario.setIdUsuario(idUsuario);
+                            usuario.setLatitud(Double.parseDouble(latitud));
+                            usuario.setLongitud(Double.parseDouble(longitud));
+                            usuario.setMarcador(
+                                    mMap.addMarker(new MarkerOptions()
+                                    .position(new LatLng(usuario.getLatitud(), usuario.getLongitud()))
+                                    .title(idUsuario)
+                                    .snippet(idUsuario + ": " + latitud + ", " + longitud)
+                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.bus))));
+                            listaUsuarios.add(usuario);
+                        }
+                        else {
+                            for(int i = 0; i < listaUsuarios.size(); i++) {
+                                Usuario usuario = listaUsuarios.get(i);
+                                if(usuario.getIdUsuario().equals(idUsuario)) {
+                                    usuario.setLatitud(Double.parseDouble(latitud));
+                                    usuario.setLongitud(Double.parseDouble(longitud));
+                                    usuario.setPosicion(Double.parseDouble(latitud), Double.parseDouble(longitud));
+                                    return;
+                                }
+                            }
+                            Usuario usuario = new Usuario();
+                            usuario.setIdUsuario(idUsuario);
+                            usuario.setLatitud(Double.parseDouble(latitud));
+                            usuario.setLongitud(Double.parseDouble(longitud));
+                            usuario.setMarcador(
+                                    mMap.addMarker(new MarkerOptions()
+                                            .position(new LatLng(usuario.getLatitud(), usuario.getLongitud()))
+                                            .title(idUsuario)
+                                            .snippet(idUsuario + ": " + latitud + ", " + longitud)));
+                            listaUsuarios.add(usuario);
+                        }
                     }
                     catch(JSONException e) {
                         return;
                     }
-
-                    // add the message to view
-                    // addMessage(username, message);
                 }
             });
         }
     };
+
+    /*public int setIcono(String tipo) {
+        if(tipo.equals("autobus")) {
+            return R.drawable.bus;
+        }
+    }*/
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {

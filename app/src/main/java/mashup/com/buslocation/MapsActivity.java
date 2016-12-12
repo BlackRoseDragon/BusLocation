@@ -20,7 +20,6 @@ import android.widget.TextView;
 import android.widget.Toast;
 import android.widget.ToggleButton;
 
-import com.estimote.sdk.Beacon;
 import com.estimote.sdk.BeaconManager;
 import com.estimote.sdk.Region;
 import com.github.nkzawa.emitter.Emitter;
@@ -114,7 +113,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Socket socket;
     {
         try {
-            socket = IO.socket("http://192.168.1.68:3000/");
+            //socket = IO.socket("http://192.168.1.68:3000/");
+            socket = IO.socket("http://buslocation-itoaxacaedu.rhcloud.com/");
         }
         catch(URISyntaxException e) {
             Toast.makeText(getApplicationContext(), e.getMessage(), Toast.LENGTH_LONG).show();
@@ -263,6 +263,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     String idUsuario;
                     String latitud;
                     String longitud;
+                    //Toast.makeText(getApplicationContext(), "Hola Mundo.", Toast.LENGTH_LONG).show();
                     try {
                         idUsuario = data.getString("idUsuario");
                         latitud = data.getString("latitud");

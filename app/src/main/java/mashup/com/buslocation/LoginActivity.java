@@ -11,6 +11,7 @@ import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.login.LoginResult;
 import com.facebook.login.widget.LoginButton;
+
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.Result;
 import com.twitter.sdk.android.core.TwitterException;
@@ -33,13 +34,6 @@ public class LoginActivity extends AppCompatActivity {
         twitter_login_button.setCallback(new Callback<TwitterSession>() {
             @Override
             public void success(Result<TwitterSession> result) {
-                // The TwitterSession is also available through:
-                // Twitter.getInstance().core.getSessionManager().getActiveSession()
-                TwitterSession session = result.data;
-                // TODO: Remove toast and use the TwitterSession's userID
-                // with your app's user model
-                //String msg = "@" + session.getUserName() + " logged in! (#" + session.getUserId() + ")";
-                //Toast.makeText(getApplicationContext(), msg, Toast.LENGTH_LONG).show();
                 goMainScreen();
             }
             @Override

@@ -7,10 +7,25 @@ import android.view.View;
 import android.widget.Button;
 
 import com.facebook.AccessToken;
+import com.facebook.GraphRequest;
+import com.facebook.GraphResponse;
+import com.facebook.HttpMethod;
 import com.facebook.login.LoginManager;
+
 import com.twitter.sdk.android.Twitter;
+import com.twitter.sdk.android.core.Callback;
+import com.twitter.sdk.android.core.Result;
+import com.twitter.sdk.android.core.TwitterException;
+import com.twitter.sdk.android.core.TwitterSession;
+import com.twitter.sdk.android.core.models.User;
+
+import org.json.JSONObject;
+
+import retrofit2.Call;
 
 public class MainActivity extends AppCompatActivity {
+
+    private Usuario usuario;
 
     private Button map_button;
 
@@ -34,9 +49,44 @@ public class MainActivity extends AppCompatActivity {
 
     public boolean verificarSesion() {
         if(Twitter.getInstance().core.getSessionManager().getActiveSession() != null) {
+
+            TwitterSession session = Twitter.getSessionManager().getActiveSession();
+            Call<User> userResult = Twitter.getApiClient(session).getAccountService().verifyCredentials(true, false);
+            userResult.enqueue(new Callback<User>() {
+
+                @Override
+                public void failure(TwitterException e) {
+                }
+
+                @Override
+                public void success(Result<User> userResult) {
+                    User user = userResult.data;
+                    usuario = new Usuario(Long.toString(user.getId()), user.name);
+                }
+
+            });
+
             return true;
         }
         if(AccessToken.getCurrentAccessToken() != null) {
+
+            Bundle params = new Bundle();
+            params.putString("fields", "id, name, email, picture");
+            new GraphRequest(
+                    AccessToken.getCurrentAccessToken(), "/me", params, HttpMethod.GET,
+                    new GraphRequest.Callback() {
+                        public void onCompleted(GraphResponse response) {
+                            try {
+                                JSONObject data = response.getJSONObject();
+                                usuario = new Usuario(data.getString("id"), data.getString("name"));
+                            }
+                            catch(Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+            ).executeAsync();
+
             return true;
         }
         return false;
@@ -64,6 +114,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void goMapScreen() {
         Intent intent = new Intent(getApplication(), MapsActivity.class);
+        intent.putExtra("usuario", usuario);
         startActivity(intent);
     }
 }

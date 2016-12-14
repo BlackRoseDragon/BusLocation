@@ -25,14 +25,11 @@ import com.estimote.sdk.Region;
 import com.github.nkzawa.emitter.Emitter;
 import com.github.nkzawa.socketio.client.IO;
 import com.github.nkzawa.socketio.client.Socket;
-import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -45,6 +42,8 @@ import java.util.UUID;
 import static mashup.com.buslocation.R.id.map;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
+
+    private Usuario usuario;
 
     private GoogleMap mMap;
 
@@ -113,7 +112,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private Socket socket;
     {
         try {
-            //socket = IO.socket("http://192.168.1.68:3000/");
+            //socket = IO.socket("http://192.168.1.68:8080/");
             socket = IO.socket("http://buslocation-itoaxacaedu.rhcloud.com/");
         }
         catch(URISyntaxException e) {
@@ -130,7 +129,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(map);
         mapFragment.getMapAsync(this);
 
+        usuario = (Usuario) getIntent().getSerializableExtra("usuario");
+
         socket.on("recibirCoordenadas", recibirCoordenadas);
+        socket.on("eliminarCoordenadas", eliminarCoordenadas);
         socket.connect();
 
         textview_coordenadas = (TextView) findViewById(R.id.textview_coordenadas);
@@ -160,9 +162,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-                //marcador.setPosition(new LatLng(location.getLatitude(), location.getLongitude()));
-                socket.emit("enviarCoordenadas", location.getLatitude() + "," + location.getLongitude());
-                textview_coordenadas.setText(location.getLatitude() + ", " + location.getLongitude());
+
+                usuario.setLatitud(location.getLatitude());
+                usuario.setLongitud(location.getLongitude());
+                usuario.setMarcadorMapa(mMap);
+
+                socket.emit("enviarCoordenadas", usuario.getIdUser() + "," + usuario.getUserName() + "," + location.getLatitude() + "," + location.getLongitude());
+
+                textview_coordenadas.setText(usuario.getLatitud() + ", " + usuario.getLongitud());
             }
 
             @Override
@@ -193,14 +200,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-        marcador = mMap.addMarker(new MarkerOptions()
-                .position(new LatLng(37.7750, 122.4183))
-                .title("Titulo.")
-                .snippet("Descripcion."));
-        // Add a marker in Sydney and move the camera
-        //LatLng sydney = new LatLng(-34, 151);
-        //mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney"));
-        //mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
     }
 
     public void verificarPermisos() {
@@ -243,7 +242,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     protected void onStop() {
         super.onStop();
-        //beaconManager.stopEddystoneScanning();
     }
 
     @Override
@@ -260,47 +258,31 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public void run() {
                     JSONObject data = (JSONObject) args[0];
-                    String idUsuario;
-                    String latitud;
-                    String longitud;
-                    //Toast.makeText(getApplicationContext(), "Hola Mundo.", Toast.LENGTH_LONG).show();
                     try {
-                        idUsuario = data.getString("idUsuario");
-                        latitud = data.getString("latitud");
-                        longitud = data.getString("longitud");
                         if(listaUsuarios.size() == 0) {
-                            Usuario usuario = new Usuario();
-                            usuario.setIdUsuario(idUsuario);
-                            usuario.setLatitud(Double.parseDouble(latitud));
-                            usuario.setLongitud(Double.parseDouble(longitud));
-                            usuario.setMarcador(
-                                    mMap.addMarker(new MarkerOptions()
-                                    .position(new LatLng(usuario.getLatitud(), usuario.getLongitud()))
-                                    .title(idUsuario)
-                                    .snippet(idUsuario + ": " + latitud + ", " + longitud)
-                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.bus))));
-                            listaUsuarios.add(usuario);
+                            Usuario nuevoUsuario = new Usuario(data.getString("idUser"), data.getString("userName"));
+                            nuevoUsuario.setIdSocket(data.getString("idSocket"));
+                            nuevoUsuario.setLatitud(Double.parseDouble(data.getString("latitud")));
+                            nuevoUsuario.setLatitud(Double.parseDouble(data.getString("longitud")));
+                            nuevoUsuario.setDistancia(mMap, new LatLng(usuario.getLatitud(), usuario.getLongitud()));
+                            listaUsuarios.add(nuevoUsuario);
                         }
                         else {
                             for(int i = 0; i < listaUsuarios.size(); i++) {
-                                Usuario usuario = listaUsuarios.get(i);
-                                if(usuario.getIdUsuario().equals(idUsuario)) {
-                                    usuario.setLatitud(Double.parseDouble(latitud));
-                                    usuario.setLongitud(Double.parseDouble(longitud));
-                                    usuario.setPosicion(Double.parseDouble(latitud), Double.parseDouble(longitud));
+                                Usuario listaUsuario = listaUsuarios.get(i);
+                                if(usuario.getIdSocket().equals(data.getString("idSocket"))) {
+                                    listaUsuario.setLatitud(Double.parseDouble(data.getString("latitud")));
+                                    listaUsuario.setLatitud(Double.parseDouble(data.getString("longitud")));
+                                    listaUsuario.setDistancia(mMap, new LatLng(usuario.getLatitud(), usuario.getLongitud()));
                                     return;
                                 }
                             }
-                            Usuario usuario = new Usuario();
-                            usuario.setIdUsuario(idUsuario);
-                            usuario.setLatitud(Double.parseDouble(latitud));
-                            usuario.setLongitud(Double.parseDouble(longitud));
-                            usuario.setMarcador(
-                                    mMap.addMarker(new MarkerOptions()
-                                            .position(new LatLng(usuario.getLatitud(), usuario.getLongitud()))
-                                            .title(idUsuario)
-                                            .snippet(idUsuario + ": " + latitud + ", " + longitud)));
-                            listaUsuarios.add(usuario);
+                            Usuario nuevoUsuario = new Usuario(data.getString("idUser"), data.getString("userName"));
+                            nuevoUsuario.setIdSocket(data.getString("idSocket"));
+                            nuevoUsuario.setLatitud(Double.parseDouble(data.getString("latitud")));
+                            nuevoUsuario.setLatitud(Double.parseDouble(data.getString("longitud")));
+                            nuevoUsuario.setDistancia(mMap, new LatLng(usuario.getLatitud(), usuario.getLongitud()));
+                            listaUsuarios.add(nuevoUsuario);
                         }
                     }
                     catch(JSONException e) {
@@ -311,11 +293,28 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
     };
 
-    /*public int setIcono(String tipo) {
-        if(tipo.equals("autobus")) {
-            return R.drawable.bus;
+    private Emitter.Listener eliminarCoordenadas = new Emitter.Listener() {
+        @Override
+        public void call(final Object... args) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    JSONObject data = (JSONObject) args[0];
+                    try {
+                        for(int i = 0; i < listaUsuarios.size(); i++) {
+                            Usuario listaUsuario = listaUsuarios.get(i);
+                            if(listaUsuario.getIdSocket().equals(data.getString("idSocket"))) {
+                                listaUsuarios.remove(i);
+                            }
+                        }
+                    }
+                    catch(JSONException e) {
+                        return;
+                    }
+                }
+            });
         }
-    }*/
+    };
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {

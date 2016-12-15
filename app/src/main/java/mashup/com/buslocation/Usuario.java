@@ -1,6 +1,7 @@
 package mashup.com.buslocation;
 
 import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
@@ -71,8 +72,8 @@ public class Usuario implements Serializable {
         this.marcador = mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(this.latitud, this.longitud))
                 .title(this.userName)
-                .snippet("Mis Coordenadas: " + this.latitud + ", " + this.longitud));
-                //.icon(BitmapDescriptorFactory.fromResource(R.drawable.bus)));
+                .snippet("Mis Coordenadas: " + this.latitud + ", " + this.longitud)
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.persona)));
     }
 
     public void actualizarPosition() {
@@ -90,7 +91,8 @@ public class Usuario implements Serializable {
         this.marcador = mMap.addMarker(new MarkerOptions()
                 .position(new LatLng(this.latitud, this.longitud))
                 .title(this.userName)
-                .snippet("Distancia: " + this.distancia + " en Metros."));
+                .snippet("Distancia: " + this.distancia + " en Metros.")
+                .icon(BitmapDescriptorFactory.fromResource(R.mipmap.autobus)));
     }
 
     public void actualizarPositionDistancia(LatLng distanciaMarcador) {

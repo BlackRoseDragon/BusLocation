@@ -173,7 +173,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                     usuario.actualizarPosition();
                 }
 
-                socket.emit("enviarCoordenadas", usuario.getIdUser() + "," + usuario.getUserName() + "," + location.getLatitude() + "," + location.getLongitude());
+                socket.emit("enviarCoordenadas", usuario.getIdUser() + "," + usuario.getUserName() + "," + usuario.getTipoUsuario() + "," + location.getLatitude() + "," + location.getLongitude());
 
                 textview_coordenadas.setText(usuario.getLatitud() + ", " + usuario.getLongitud());
             }

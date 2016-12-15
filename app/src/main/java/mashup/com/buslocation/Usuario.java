@@ -14,6 +14,7 @@ public class Usuario implements Serializable {
     private String idSocket = "";
     private String idUser = "";
     private String userName = "";
+    private String tipoUsuario = "";
     private double latitud = 0.0;
     private double longitud = 0.0;
     private Marker marcador;
@@ -46,6 +47,14 @@ public class Usuario implements Serializable {
 
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+
+    public String getTipoUsuario() {
+        return tipoUsuario;
+    }
+
+    public void setTipoUsuario(String tipoUsuario) {
+        this.tipoUsuario = tipoUsuario;
     }
 
     public double getLatitud() {

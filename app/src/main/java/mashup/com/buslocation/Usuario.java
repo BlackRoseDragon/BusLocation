@@ -75,6 +75,12 @@ public class Usuario implements Serializable {
                 //.icon(BitmapDescriptorFactory.fromResource(R.drawable.bus)));
     }
 
+    public void actualizarPosition() {
+        marcador.setPosition(new LatLng(this.latitud, this.longitud));
+        marcador.setTitle(this.userName);
+        marcador.setSnippet("Mis Coordenadas: " + this.latitud + ", " + this.longitud);
+    }
+
     public double getDistancia() {
         return distancia;
     }
@@ -85,5 +91,16 @@ public class Usuario implements Serializable {
                 .position(new LatLng(this.latitud, this.longitud))
                 .title(this.userName)
                 .snippet("Distancia: " + this.distancia + " en Metros."));
+    }
+
+    public void actualizarPositionDistancia(LatLng distanciaMarcador) {
+        this.distancia = SphericalUtil.computeDistanceBetween(distanciaMarcador, new LatLng(this.latitud, this.longitud));
+        marcador.setPosition(new LatLng(this.latitud, this.longitud));
+        marcador.setTitle(this.userName);
+        marcador.setSnippet("Distancia: " + this.distancia + " en Metros.");
+    }
+
+    public void remover() {
+        marcador.remove();
     }
 }

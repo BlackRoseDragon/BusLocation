@@ -162,14 +162,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         locationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
-
-                usuario.setLatitud(location.getLatitude());
-                usuario.setLongitud(location.getLongitude());
-                usuario.setMarcadorMapa(mMap);
+                if(usuario.getLatitud() == 0.0 && usuario.getLongitud() == 0.0) {
+                    usuario.setLatitud(location.getLatitude());
+                    usuario.setLongitud(location.getLongitude());
+                    usuario.setMarcadorMapa(mMap);
+                }
+                else {
+                    usuario.setLatitud(location.getLatitude());
+                    usuario.setLongitud(location.getLongitude());
+                    usuario.actualizarPosition();
+                }
 
                 socket.emit("enviarCoordenadas", usuario.getIdUser() + "," + usuario.getUserName() + "," + location.getLatitude() + "," + location.getLongitude());
 
-                //textview_coordenadas.setText(usuario.getLatitud() + ", " + usuario.getLongitud());
+                textview_coordenadas.setText(usuario.getLatitud() + ", " + usuario.getLongitud());
             }
 
             @Override
@@ -220,7 +226,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         else {
             if(locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
                 Toast.makeText(getApplicationContext(), "Iniciando el servicio GPS.", Toast.LENGTH_LONG).show();
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 0, locationListener);
+                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 3000, 0, locationListener);
             }
         }
     }
@@ -259,7 +265,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 public void run() {
                     JSONObject data = (JSONObject) args[0];
 
-                    Toast.makeText(getApplicationContext(), "Hola Mundo.", Toast.LENGTH_LONG).show();
+                    //Toast.makeText(getApplicationContext(), "Hola Mundo." + " Length: " + listaUsuarios.size(), Toast.LENGTH_LONG).show();
                     try {
                         if(listaUsuarios.size() == 0) {
                             Usuario nuevoUsuario = new Usuario(data.getString("idUser"), data.getString("userName"));
@@ -272,10 +278,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         else {
                             for(int i = 0; i < listaUsuarios.size(); i++) {
                                 Usuario listaUsuario = listaUsuarios.get(i);
-                                if(usuario.getIdSocket().equals(data.getString("idSocket"))) {
+                                if(listaUsuario.getIdSocket().equals(data.getString("idSocket"))) {
                                     listaUsuario.setLatitud(Double.parseDouble(data.getString("latitud")));
                                     listaUsuario.setLongitud(Double.parseDouble(data.getString("longitud")));
-                                    listaUsuario.setDistancia(mMap, new LatLng(usuario.getLatitud(), usuario.getLongitud()));
+                                    listaUsuario.actualizarPositionDistancia(new LatLng(usuario.getLatitud(), usuario.getLongitud()));
                                     return;
                                 }
                             }
@@ -302,10 +308,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public void run() {
                     JSONObject data = (JSONObject) args[0];
+
+                    //Toast.makeText(getApplicationContext(), "Adios Mundo.", Toast.LENGTH_LONG).show();
                     try {
                         for(int i = 0; i < listaUsuarios.size(); i++) {
                             Usuario listaUsuario = listaUsuarios.get(i);
                             if(listaUsuario.getIdSocket().equals(data.getString("idSocket"))) {
+                                listaUsuario.remover();
                                 listaUsuarios.remove(i);
                             }
                         }

@@ -169,7 +169,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
                 socket.emit("enviarCoordenadas", usuario.getIdUser() + "," + usuario.getUserName() + "," + location.getLatitude() + "," + location.getLongitude());
 
-                textview_coordenadas.setText(usuario.getLatitud() + ", " + usuario.getLongitud());
+                //textview_coordenadas.setText(usuario.getLatitud() + ", " + usuario.getLongitud());
             }
 
             @Override
@@ -258,12 +258,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 @Override
                 public void run() {
                     JSONObject data = (JSONObject) args[0];
+
+                    Toast.makeText(getApplicationContext(), "Hola Mundo.", Toast.LENGTH_LONG).show();
                     try {
                         if(listaUsuarios.size() == 0) {
                             Usuario nuevoUsuario = new Usuario(data.getString("idUser"), data.getString("userName"));
                             nuevoUsuario.setIdSocket(data.getString("idSocket"));
                             nuevoUsuario.setLatitud(Double.parseDouble(data.getString("latitud")));
-                            nuevoUsuario.setLatitud(Double.parseDouble(data.getString("longitud")));
+                            nuevoUsuario.setLongitud(Double.parseDouble(data.getString("longitud")));
                             nuevoUsuario.setDistancia(mMap, new LatLng(usuario.getLatitud(), usuario.getLongitud()));
                             listaUsuarios.add(nuevoUsuario);
                         }
@@ -272,7 +274,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                                 Usuario listaUsuario = listaUsuarios.get(i);
                                 if(usuario.getIdSocket().equals(data.getString("idSocket"))) {
                                     listaUsuario.setLatitud(Double.parseDouble(data.getString("latitud")));
-                                    listaUsuario.setLatitud(Double.parseDouble(data.getString("longitud")));
+                                    listaUsuario.setLongitud(Double.parseDouble(data.getString("longitud")));
                                     listaUsuario.setDistancia(mMap, new LatLng(usuario.getLatitud(), usuario.getLongitud()));
                                     return;
                                 }
@@ -280,7 +282,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                             Usuario nuevoUsuario = new Usuario(data.getString("idUser"), data.getString("userName"));
                             nuevoUsuario.setIdSocket(data.getString("idSocket"));
                             nuevoUsuario.setLatitud(Double.parseDouble(data.getString("latitud")));
-                            nuevoUsuario.setLatitud(Double.parseDouble(data.getString("longitud")));
+                            nuevoUsuario.setLongitud(Double.parseDouble(data.getString("longitud")));
                             nuevoUsuario.setDistancia(mMap, new LatLng(usuario.getLatitud(), usuario.getLongitud()));
                             listaUsuarios.add(nuevoUsuario);
                         }

@@ -54,5 +54,4 @@ dependencies {
     }
     compile 'com.github.nkzawa:socket.io-client:0.3.0'
     compile 'com.estimote:sdk:0.13.0@aar'
-    compile 'com.google.maps.android:android-maps-utils:0.4+'
 }
